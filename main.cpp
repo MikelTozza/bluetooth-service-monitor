@@ -62,16 +62,9 @@ public:
                     do
                     {
                         DeviceInfo info;
-                        std::wstringstream addressStream;
-                        for (int i = 0; i < 6; i++)
-                        {
-                            addressStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << static_cast<int>(deviceInfo.Address.rgBytes[i]);
-                            if (i < 5)
-                                addressStream << L":";
-                        }
                         info.deviceInfo = deviceInfo;
                         info.name = deviceInfo.szName;
-                        info.address = addressStream.str();
+                        info.address = formatBluetoothAddress(deviceInfo.Address);
                         info.deviceClass = deviceInfo.ulClassofDevice;
                         info.authenticated = deviceInfo.fAuthenticated;
                         info.connected = deviceInfo.fConnected;
