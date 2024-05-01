@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # bluetooth-service-monitor
 =======
 The bluetooth-service-monitore is a background service designed to enhance audio experiences on Windows devices by managing Bluetooth handsfree services.
@@ -11,5 +10,7 @@ Key Features:
 - Background Operation: Runs silently in the background, requiring minimal resources, and operates transparently to the user, enhancing usability without disrupting ongoing tasks.
 
 This project is ideal for users who frequently encounter audio issues with Bluetooth-enabled devices on Windows,
-offering a seamless solution to improve audio interaction quality in various software environments.
->>>>>>> dev
+offering a seamless solution to improve audio interaction quality in various software environments
+==============================
+COMING SOON:
+- Right now the audio detection is being transcoded from python to c++ to reduce the size in the dev environment 
