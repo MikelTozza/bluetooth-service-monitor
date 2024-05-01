@@ -1,4 +1,4 @@
-The bluetooth-service-monitore is a background service designed to enhance audio experiences on Windows devices by intelligently managing Bluetooth handsfree services.
+The bluetooth-service-monitore is a background service designed to enhance audio experiences on Windows devices by managing Bluetooth handsfree services.
 This project focuses on monitoring audio quality in real-time, specifically detecting when audio becomes muffled or degraded during application usage.
 Upon detection, it automatically adjusts Bluetooth handsfree settings to ensure optimal audio clarity and performance.
 
