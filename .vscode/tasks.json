@@ -2,19 +2,27 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: cl.exe build active file with Bluetooth",
+            "label": "C/C++: cl.exe build active file with Bluetooth and RtAudio",
             "command": "cl.exe",
             "args": [
-                "/Zi",
-                "/EHsc",
-                "/nologo",
-                "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "${file}",
+                "/Zi",                     // Generates complete debugging information
+                "/EHsc",                   // Enables standard C++ exception handling
+                "/nologo",                 // Suppresses the startup banner
+                "/I", "C:\\Users\\mikel\\rtaudio\\rtaudio", // Add the RtAudio include directory
+                "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe", // Specifies the output executable name
+
+                "${workspaceFolder}\\src\\main.cpp",        // Path to the main.cpp file
+                "${workspaceFolder}\\src\\BlueTooth\\BlueToothDevices.cpp", // Path to the BlueToothDevices.cpp file
+                // "${workspaceFolder}\\src\\Audio\\AudioHandler.cpp", // Path to the AudioHandler.cpp file
+                
                 "/link",
-                "Bthprops.lib"
+                "/LIBPATH:C:\\Users\\mikel\\c_plus_plus\\build\\Debug",  // Library path for other libraries
+                "/LIBPATH:C:\\Users\\mikel\\rtaudio\\build\\Debug",  // Library path for RtAudio
+                "Bthprops.lib",            // Link against Bthprops.lib
+                "rtaudiod.lib"             // Link against RtAudio debug library
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"  // Set the working directory to the workspace folder
             },
             "problemMatcher": [
                 "$msCompile"
@@ -23,7 +31,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Compiler task modified to include Bluetooth library."
+            "detail": "Compiler task modified to include Bluetooth library and RtAudio."
         }
     ],
     "version": "2.0.0"

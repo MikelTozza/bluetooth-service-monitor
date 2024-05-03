@@ -24,3 +24,4 @@ build/
 
 # Include Visual Studio Code configuration files
 !.vscode/
+rtaudio/

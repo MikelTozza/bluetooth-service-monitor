@@ -1,10 +1,14 @@
 #include <iostream>
 #include <iomanip>
 #include "Bluetooth/BlueToothDevices.h"
-
+#include "Audio/AudioHandler.h"
 
 int main()
 {
+    // AudioHandler handler;
+    // handler.runAudioStream();
+    // return 0;
+    
     BlueToothDevices btObj;
     auto devices = btObj.getBluetoothDevices();
     if (devices.empty())
