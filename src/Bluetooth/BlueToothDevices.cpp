@@ -2,28 +2,24 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
-#include <initguid.h>
 
 DEFINE_GUID(GUID_HANDSFREE_TELEPHONY_SERVICE, 0x0000111E, 0x0000, 0x1000, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB);
 
 std::vector<BlueToothDevices::DeviceInfo> BlueToothDevices::getBluetoothDevices() {
-        BLUETOOTH_FIND_RADIO_PARAMS btfrp = {sizeof(btfrp)};
-        HANDLE radio = NULL;
-        HBLUETOOTH_RADIO_FIND findRadio = BluetoothFindFirstRadio(&btfrp, &radio);
-        std::vector<DeviceInfo> devices;
+    BLUETOOTH_FIND_RADIO_PARAMS btfrp = {sizeof(btfrp)};
+    HANDLE radio = NULL;
+    HBLUETOOTH_RADIO_FIND findRadio = BluetoothFindFirstRadio(&btfrp, &radio);
+    std::vector<DeviceInfo> devices;
 
-        if (findRadio == NULL)
-        {
-            std::cerr << "No Bluetooth radios found." << std::endl;
-            return devices;
-        }
+    if (findRadio == NULL) {
+        std::cerr << "No Bluetooth radios found." << std::endl;
+        return devices;
+    }
 
-        do
-        {
-            BLUETOOTH_RADIO_INFO radioInfo = {sizeof(radioInfo)};
-            if (BluetoothGetRadioInfo(radio, &radioInfo) == ERROR_SUCCESS)
-            {
-                BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {
+    do {
+        BLUETOOTH_RADIO_INFO radioInfo = {sizeof(radioInfo)};
+        if (BluetoothGetRadioInfo(radio, &radioInfo) == ERROR_SUCCESS) {
+            BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {
                     sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS),
                     1, // returnAuthenticated
                     0,
@@ -31,104 +27,94 @@ std::vector<BlueToothDevices::DeviceInfo> BlueToothDevices::getBluetoothDevices(
                     1, // returnConnected
                     1, // issueInquiry
                     1, // timeoutMultiplier, adjust based on how much time you want to spend
-                    radio};
+                    radio
+            };
 
-                BLUETOOTH_DEVICE_INFO deviceInfo = {sizeof(BLUETOOTH_DEVICE_INFO)};
-                deviceInfo.dwSize = sizeof(BLUETOOTH_DEVICE_INFO);
-                HBLUETOOTH_DEVICE_FIND findDevice = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
+            BLUETOOTH_DEVICE_INFO deviceInfo = {sizeof(BLUETOOTH_DEVICE_INFO)};
+            deviceInfo.dwSize = sizeof(BLUETOOTH_DEVICE_INFO);
+            HBLUETOOTH_DEVICE_FIND findDevice = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
 
-                if (findDevice != NULL)
-                {
-                    do
-                    {
-                        DeviceInfo info;
-                        info.deviceInfo = deviceInfo;
-                        info.name = deviceInfo.szName;
-                        info.address = formatBluetoothAddress(deviceInfo.Address);
-                        info.deviceClass = deviceInfo.ulClassofDevice;
-                        info.authenticated = deviceInfo.fAuthenticated;
-                        info.connected = deviceInfo.fConnected;
-                        info.handsfreeTelephonySupported = checkHandsfreeTelephonySupport(deviceInfo);
+            if (findDevice != NULL) {
+                do {
+                    DeviceInfo info;
+                    info.deviceInfo = deviceInfo;
+                    info.name = deviceInfo.szName;
+                    info.address = formatBluetoothAddress(deviceInfo.Address);
+                    info.deviceClass = deviceInfo.ulClassofDevice;
+                    info.authenticated = deviceInfo.fAuthenticated;
+                    info.connected = deviceInfo.fConnected;
+                    info.handsfreeTelephonySupported = checkHandsfreeTelephonySupport(deviceInfo);
 
-                        devices.push_back(info);
-                    } while (BluetoothFindNextDevice(findDevice, &deviceInfo));
-                    BluetoothFindDeviceClose(findDevice);
-                }
+                    devices.push_back(info);
+                } while (BluetoothFindNextDevice(findDevice, &deviceInfo));
+                BluetoothFindDeviceClose(findDevice);
             }
-            CloseHandle(radio);
-        } while (BluetoothFindNextRadio(findRadio, &radio));
+        }
+        CloseHandle(radio);
+    } while (BluetoothFindNextRadio(findRadio, &radio));
 
-        BluetoothFindRadioClose(findRadio);
-        return devices;
+    BluetoothFindRadioClose(findRadio);
+    return devices;
 }
-
 
 bool BlueToothDevices::checkHandsfreeTelephonySupport(const BLUETOOTH_DEVICE_INFO& deviceInfo) {
-        GUID serviceGUIDs[16]; // Adjust size according to expected number of services
-        DWORD numServices = 16;
-        if (BluetoothEnumerateInstalledServices(NULL, &deviceInfo, &numServices, serviceGUIDs) == ERROR_SUCCESS)
-        {
-            for (DWORD i = 0; i < numServices; ++i)
-            {
-                if (IsEqualGUID(serviceGUIDs[i], GUID_HANDSFREE_TELEPHONY_SERVICE))
-                {
-                    return true;
-                }
+    BLUETOOTH_DEVICE_INFO mutableDeviceInfo = deviceInfo;
+    GUID serviceGUIDs[16];
+    DWORD numServices = 16;
+    if (BluetoothEnumerateInstalledServices(NULL, &mutableDeviceInfo, &numServices, serviceGUIDs) == ERROR_SUCCESS) {
+        for (DWORD i = 0; i < numServices; ++i) {
+            if (IsEqualGUID(serviceGUIDs[i], GUID_HANDSFREE_TELEPHONY_SERVICE)) {
+                return true;
             }
         }
-        return false;
+    }
+    return false;
 }
-
 
 bool BlueToothDevices::setHandsfreeTelephonyServiceState(const DeviceInfo& device, bool enable) {
-        HANDLE radioHandle = NULL;
-        DWORD result;
-        bool serviceModified = false;
+    HANDLE radioHandle = NULL;
+    DWORD result;
+    bool serviceModified = false;
 
-        // Iterate through all available radios
-        BLUETOOTH_FIND_RADIO_PARAMS btfrp = {sizeof(btfrp)};
-        HBLUETOOTH_RADIO_FIND radioFind = BluetoothFindFirstRadio(&btfrp, &radioHandle);
-        while (radioFind != NULL && !serviceModified)
-        {
-            // Check if this is the correct radio for the device
-            if (isCorrectRadio(radioHandle, device))
-            {
-                // Try to set the service state
-                DWORD serviceState = (enable ? BLUETOOTH_SERVICE_ENABLE : BLUETOOTH_SERVICE_DISABLE);
-                result = BluetoothSetServiceState(radioHandle, &device.deviceInfo, &GUID_HANDSFREE_TELEPHONY_SERVICE, serviceState);
-                if (result == ERROR_SUCCESS)
-                {
-                    serviceModified = true;
-                }
-                CloseHandle(radioHandle); // Close the current radio handle
-            }
+    BLUETOOTH_FIND_RADIO_PARAMS btfrp = {sizeof(btfrp)};
+    HBLUETOOTH_RADIO_FIND radioFind = BluetoothFindFirstRadio(&btfrp, &radioHandle);
+    if (radioFind == NULL) {
+        std::cerr << "No Bluetooth radios found." << std::endl;
+        return false;
+    }
 
-            if (!BluetoothFindNextRadio(radioFind, &radioHandle))
-            {
-                break;
+    while (radioFind != NULL && !serviceModified) {
+        if (isCorrectRadio(radioHandle, device)) {
+            DWORD serviceState = (enable ? BLUETOOTH_SERVICE_ENABLE : BLUETOOTH_SERVICE_DISABLE);
+            GUID mutableGUID = GUID_HANDSFREE_TELEPHONY_SERVICE;
+
+            result = BluetoothSetServiceState(radioHandle, const_cast<BLUETOOTH_DEVICE_INFO*>(&device.deviceInfo), &mutableGUID, serviceState);
+            if (result == ERROR_SUCCESS) {
+                serviceModified = true;
             }
         }
-        BluetoothFindRadioClose(radioFind); // Close the radio finder
+        CloseHandle(radioHandle);
 
-        return serviceModified;
+        if (!BluetoothFindNextRadio(radioFind, &radioHandle)) {
+            break;
+        }
+    }
+
+    BluetoothFindRadioClose(radioFind);
+    return serviceModified;
 }
 
-
 bool BlueToothDevices::isCorrectRadio(HANDLE radioHandle, const DeviceInfo& device) {
-        BLUETOOTH_RADIO_INFO radioInfo = {0};
-        radioInfo.dwSize = sizeof(radioInfo);
-        DWORD result;
+    BLUETOOTH_RADIO_INFO radioInfo = {0};
+    radioInfo.dwSize = sizeof(radioInfo);
+    DWORD result = BluetoothGetRadioInfo(radioHandle, &radioInfo);
 
-        // Get radio info
-        result = BluetoothGetRadioInfo(radioHandle, &radioInfo);
-        if (result != ERROR_SUCCESS)
-        {
-            std::wcerr << L"Failed to get radio info." << std::endl;
-            return false;
-        }
+    if (result != ERROR_SUCCESS) {
+        std::cerr << "Failed to get radio info." << std::endl;
+        return false;
+    }
 
-        // Attempt to find the device on this radio
-        BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {
+    BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {
             sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS),
             1, // returnAuthenticated
             0,
@@ -136,40 +122,37 @@ bool BlueToothDevices::isCorrectRadio(HANDLE radioHandle, const DeviceInfo& devi
             1, // returnConnected
             1, // issueInquiry
             2, // timeoutMultiplier, adjust based on how much time you want to spend
-            radioHandle};
+            radioHandle
+    };
 
-        BLUETOOTH_DEVICE_INFO deviceInfo = device.deviceInfo;
-        deviceInfo.dwSize = sizeof(BLUETOOTH_DEVICE_INFO);
-        HBLUETOOTH_DEVICE_FIND deviceFind = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
-        if (deviceFind == NULL)
-        {
-            return false; // No devices found on this radio
+    BLUETOOTH_DEVICE_INFO deviceInfo = device.deviceInfo;
+    deviceInfo.dwSize = sizeof(BLUETOOTH_DEVICE_INFO);
+    HBLUETOOTH_DEVICE_FIND deviceFind = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
+
+    if (deviceFind == NULL) {
+        return false;
+    }
+
+    bool found = false;
+    do {
+        if (device.address == formatBluetoothAddress(deviceInfo.Address)) {
+            found = true;
+            break;
         }
+    } while (BluetoothFindNextDevice(deviceFind, &deviceInfo));
 
-        bool found = false;
-        do
-        {
-            if (device.address == formatBluetoothAddress(deviceInfo.Address))
-            {
-                found = true;
-                break;
-            }
-        } while (BluetoothFindNextDevice(deviceFind, &deviceInfo));
-
-        BluetoothFindDeviceClose(deviceFind);
-        return found;
+    BluetoothFindDeviceClose(deviceFind);
+    return found;
 }
-
 
 std::wstring BlueToothDevices::formatBluetoothAddress(BLUETOOTH_ADDRESS address) {
     std::wstringstream ws;
-        ws << std::hex << std::uppercase << std::setfill(L'0');
-        for (int i = 0; i < 6; i++)
-        { // Process from byte 0 to 5 for consistency
-            ws << std::setw(2) << static_cast<int>(address.rgBytes[i]);
-            if (i < 5) // Add colon after each byte except the last one
-                ws << L":";
+    ws << std::hex << std::uppercase << std::setfill(L'0');
+    for (int i = 0; i < 6; i++) {
+        ws << std::setw(2) << static_cast<int>(address.rgBytes[i]);
+        if (i < 5) {
+            ws << L":";
         }
-        return ws.str();
+    }
+    return ws.str();
 }
-

@@ -4,6 +4,10 @@
 #include <string>
 #include <windows.h>
 #include <bluetoothapis.h>
+#include <initguid.h>
+
+#define BLUETOOTH_SERVICE_ENABLE 1
+#define BLUETOOTH_SERVICE_DISABLE 0
 
 
 class BlueToothDevices {
