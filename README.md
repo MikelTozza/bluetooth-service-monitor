@@ -13,4 +13,5 @@ This project is ideal for users who frequently encounter audio issues with Bluet
 offering a seamless solution to improve audio interaction quality in various software environments
 ==============================
 COMING SOON:
-- Right now the audio detection is being transcoded from python to c++ to reduce the size in the dev environment 
+- Backgroudn task that will auto detect frequency change
+- updated libraries and a switch to RTAudio
